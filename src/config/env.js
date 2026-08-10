@@ -7,7 +7,6 @@ dotenv.config({ path: envPath });
 
 const requiredEnvVars = [
   'NODE_ENV',
-  'PORT',
   'MONGODB_URI',
   'CORS_ORIGIN',
   'JWT_SECRET',

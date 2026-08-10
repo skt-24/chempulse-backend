@@ -1,37 +1,120 @@
 const express = require('express');
+
 const adminController = require('../controllers/adminController');
-const { validateAdminPayload } = require('../validators/adminValidator');
 const { protect, authorize } = require('../middleware/auth');
+const { validateAdminPayload } = require('../validators/adminValidator');
 
 const router = express.Router();
 
-// All administrative routes require authentication and at least 'editor' role
+// ======================================================
+// ADMIN AUTHENTICATION
+// ======================================================
+
 router.use(protect);
-router.use(authorize('editor', 'admin'));
-router.get("/dashboard", adminController.getDashboardStats);
+router.use(authorize('admin'));
 
-// --- ARTICLES ---
-router.post('/articles', validateAdminPayload('article'), adminController.createArticle);
-router.patch('/articles/:id', validateAdminPayload('article'), adminController.updateArticle);
-router.delete('/articles/:id', authorize('admin'), adminController.deleteArticle); // Admin role required for hard deletion
+// ======================================================
+// DASHBOARD
+// ======================================================
 
-// --- CATEGORIES ---
-router.post('/categories', validateAdminPayload('category'), adminController.createCategory);
-router.patch('/categories/:id', validateAdminPayload('category'), adminController.updateCategory);
+router.get(
+  '/dashboard/stats',
+  adminController.getDashboardStats
+);
 
-// --- TOPICS ---
-router.post('/topics', validateAdminPayload('topic'), adminController.createTopic);
-router.patch('/topics/:id', validateAdminPayload('topic'), adminController.updateTopic);
+// ======================================================
+// ARTICLES
+// ======================================================
 
-// --- MOLECULES ---
-router.post('/molecules', validateAdminPayload('molecule'), adminController.createMolecule);
-router.patch('/molecules/:id', validateAdminPayload('molecule'), adminController.updateMolecule);
+router.post(
+  '/articles',
+  validateAdminPayload('article'),
+  adminController.createArticle
+);
 
-// --- QUIZZES ---
-router.post('/quizzes', validateAdminPayload('quiz'), adminController.createQuiz);
-router.patch('/quizzes/:id', validateAdminPayload('quiz'), adminController.updateQuiz);
+router.put(
+  '/articles/:id',
+  validateAdminPayload('article'),
+  adminController.updateArticle
+);
 
-// --- SPECIALIZED HUB CONFIG ---
-router.post('/hubs', authorize('admin'), validateAdminPayload('hub'), adminController.upsertCategoryHub);
+router.delete(
+  '/articles/:id',
+  adminController.deleteArticle
+);
+
+// ======================================================
+// CATEGORIES
+// ======================================================
+
+router.post(
+  '/categories',
+  validateAdminPayload('category'),
+  adminController.createCategory
+);
+
+router.put(
+  '/categories/:id',
+  validateAdminPayload('category'),
+  adminController.updateCategory
+);
+
+// ======================================================
+// TOPICS
+// ======================================================
+
+router.post(
+  '/topics',
+  validateAdminPayload('topic'),
+  adminController.createTopic
+);
+
+router.put(
+  '/topics/:id',
+  validateAdminPayload('topic'),
+  adminController.updateTopic
+);
+
+// ======================================================
+// MOLECULES
+// ======================================================
+
+router.post(
+  '/molecules',
+  validateAdminPayload('molecule'),
+  adminController.createMolecule
+);
+
+router.put(
+  '/molecules/:id',
+  validateAdminPayload('molecule'),
+  adminController.updateMolecule
+);
+
+// ======================================================
+// QUIZZES
+// ======================================================
+
+router.post(
+  '/quizzes',
+  validateAdminPayload('quiz'),
+  adminController.createQuiz
+);
+
+router.put(
+  '/quizzes/:id',
+  validateAdminPayload('quiz'),
+  adminController.updateQuiz
+);
+
+// ======================================================
+// CATEGORY HUB
+// ======================================================
+
+router.post(
+  '/hubs',
+  validateAdminPayload('hub'),
+  adminController.upsertCategoryHub
+);
 
 module.exports = router;

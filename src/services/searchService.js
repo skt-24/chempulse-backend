@@ -1,228 +1,248 @@
 const Article = require('../models/Article');
-const Topic = require('../models/Topic');
-const Category = require('../models/Category');
 const Molecule = require('../models/Molecule');
 
-// Utility to escape regex special characters and prevent NoSQL/Regex injection
-const escapeRegex = (text) => {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-};
+const escapeRegex = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const search = async (queryParams) => {
-  const { q, type = 'all', page = 1, limit = 10 } = queryParams;
+const search = async (queryParams = {}) => {
+  const q = String(queryParams.q || '').trim();
 
-  const sanitizedQuery = q.trim();
-  const escapedQuery = escapeRegex(sanitizedQuery);
-  const regexPattern = new RegExp(escapedQuery, 'i');
-
-  const skip = (page - 1) * limit;
-
-  let results = [];
-  let total = 0;
-
-  if (type === 'article') {
-    const filter = {
-      status: 'published',
-      $or: [
-        { title: regexPattern },
-        { excerpt: regexPattern },
-        { content: regexPattern }
-      ]
+  // Always return the Android-compatible structure
+  if (!q) {
+    return {
+      articles: [],
+      molecules: []
     };
-
-    const [articles, count] = await Promise.all([
-      Article.find(filter)
-        .skip(skip)
-        .limit(limit)
-        .select('title slug excerpt category heroImage publishedAt readTimeMinutes')
-        .populate('category', 'name slug')
-        .lean(),
-      Article.countDocuments(filter)
-    ]);
-
-    total = count;
-    results = articles.map((art) => ({
-      type: 'article',
-      id: art._id,
-      title: art.title,
-      slug: art.slug,
-      excerpt: art.excerpt,
-      category: art.category ? art.category.name : null,
-      heroImage: art.heroImage ? art.heroImage.url : null,
-      publishedAt: art.publishedAt,
-      readTimeMinutes: art.readTimeMinutes
-    }));
-  } else if (type === 'molecule') {
-    const filter = {
-      $or: [
-        { name: regexPattern },
-        { formula: regexPattern },
-        { description: regexPattern },
-        { commonUses: regexPattern }
-      ]
-    };
-
-    const [molecules, count] = await Promise.all([
-      Molecule.find(filter)
-        .skip(skip)
-        .limit(limit)
-        .select('name slug formula molarMass description structureImage')
-        .lean(),
-      Molecule.countDocuments(filter)
-    ]);
-
-    total = count;
-    results = molecules.map((mol) => ({
-      type: 'molecule',
-      id: mol._id,
-      name: mol.name,
-      slug: mol.slug,
-      formula: mol.formula,
-      molarMass: mol.molarMass,
-      description: mol.description,
-      structureImage: mol.structureImage ? mol.structureImage.url : null
-    }));
-  } else if (type === 'category') {
-    const filter = {
-      active: true,
-      $or: [{ name: regexPattern }, { description: regexPattern }]
-    };
-
-    const [categories, count] = await Promise.all([
-      Category.find(filter)
-        .skip(skip)
-        .limit(limit)
-        .select('name slug description icon')
-        .lean(),
-      Category.countDocuments(filter)
-    ]);
-
-    total = count;
-    results = categories.map((cat) => ({
-      type: 'category',
-      id: cat._id,
-      name: cat.name,
-      slug: cat.slug,
-      description: cat.description,
-      icon: cat.icon
-    }));
-  } else if (type === 'topic') {
-    const filter = {
-      active: true,
-      $or: [{ name: regexPattern }, { description: regexPattern }]
-    };
-
-    const [topics, count] = await Promise.all([
-      Topic.find(filter)
-        .skip(skip)
-        .limit(limit)
-        .select('name slug description isTrending trendingScore')
-        .lean(),
-      Topic.countDocuments(filter)
-    ]);
-
-    total = count;
-    results = topics.map((top) => ({
-      type: 'topic',
-      id: top._id,
-      name: top.name,
-      slug: top.slug,
-      description: top.description,
-      isTrending: top.isTrending
-    }));
-  } else {
-    // Type === 'all': Multi-entity aggregated query
-    const [articles, molecules, categories, topics] = await Promise.all([
-      Article.find({
-        status: 'published',
-        $or: [{ title: regexPattern }, { excerpt: regexPattern }]
-      })
-        .limit(limit)
-        .select('title slug excerpt category publishedAt')
-        .populate('category', 'name slug')
-        .lean(),
-
-      Molecule.find({
-        $or: [{ name: regexPattern }, { formula: regexPattern }, { description: regexPattern }]
-      })
-        .limit(limit)
-        .select('name slug formula molarMass description')
-        .lean(),
-
-      Category.find({
-        active: true,
-        $or: [{ name: regexPattern }, { description: regexPattern }]
-      })
-        .limit(limit)
-        .select('name slug description icon')
-        .lean(),
-
-      Topic.find({
-        active: true,
-        $or: [{ name: regexPattern }, { description: regexPattern }]
-      })
-        .limit(limit)
-        .select('name slug description isTrending')
-        .lean()
-    ]);
-
-    const formattedArticles = articles.map((art) => ({
-      type: 'article',
-      id: art._id,
-      title: art.title,
-      slug: art.slug,
-      excerpt: art.excerpt,
-      category: art.category ? art.category.name : null,
-      publishedAt: art.publishedAt
-    }));
-
-    const formattedMolecules = molecules.map((mol) => ({
-      type: 'molecule',
-      id: mol._id,
-      name: mol.name,
-      slug: mol.slug,
-      formula: mol.formula,
-      description: mol.description
-    }));
-
-    const formattedCategories = categories.map((cat) => ({
-      type: 'category',
-      id: cat._id,
-      name: cat.name,
-      slug: cat.slug,
-      description: cat.description
-    }));
-
-    const formattedTopics = topics.map((top) => ({
-      type: 'topic',
-      id: top._id,
-      name: top.name,
-      slug: top.slug,
-      description: top.description
-    }));
-
-    const combined = [
-      ...formattedArticles,
-      ...formattedMolecules,
-      ...formattedCategories,
-      ...formattedTopics
-    ];
-
-    total = combined.length;
-    results = combined.slice(skip, skip + limit);
   }
 
-  return {
-    query: sanitizedQuery,
-    type,
-    results,
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / limit) || 0
+  const regex = new RegExp(escapeRegex(q), 'i');
+
+  // ======================================================
+  // ARTICLES
+  // ======================================================
+
+  const articles = await Article.aggregate([
+    // Only published articles should appear in public search
+    {
+      $match: {
+        status: 'published'
+      }
+    },
+
+    // Category reference -> actual Category document
+    {
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'categoryData'
+      }
+    },
+
+    // Topics references -> actual Topic documents
+    {
+      $lookup: {
+        from: 'topics',
+        localField: 'topics',
+        foreignField: '_id',
+        as: 'topicData'
+      }
+    },
+
+    // Search across article + referenced documents
+    {
+      $match: {
+        $or: [
+          // Article title
+          {
+            title: {
+              $regex: regex
+            }
+          },
+
+          // Article excerpt = subtitle equivalent
+          {
+            excerpt: {
+              $regex: regex
+            }
+          },
+
+          // Category name
+          {
+            'categoryData.name': {
+              $regex: regex
+            }
+          },
+
+          // Category slug
+          {
+            'categoryData.slug': {
+              $regex: regex
+            }
+          },
+
+          // Topic/tag name
+          {
+            'topicData.name': {
+              $regex: regex
+            }
+          },
+
+          // Topic/tag slug
+          {
+            'topicData.slug': {
+              $regex: regex
+            }
+          }
+        ]
+      }
+    },
+
+    // Newest articles first
+    {
+      $sort: {
+        publishedAt: -1,
+        createdAt: -1
+      }
+    },
+
+    {
+      $limit: 50
+    },
+
+    // Return only what the Android app needs
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        slug: 1,
+        excerpt: 1,
+        author: 1,
+        heroImage: 1,
+        publishedAt: 1,
+        readTimeMinutes: 1,
+
+        categoryData: 1,
+        topicData: 1
+      }
     }
+  ]);
+
+  // ======================================================
+  // MOLECULES
+  // ======================================================
+
+  const molecules = await Molecule.find({
+    $or: [
+      {
+        name: {
+          $regex: regex
+        }
+      },
+      {
+        slug: {
+          $regex: regex
+        }
+      },
+      {
+        formula: {
+          $regex: regex
+        }
+      },
+      {
+        description: {
+          $regex: regex
+        }
+      },
+      {
+        commonUses: {
+          $regex: regex
+        }
+      }
+    ]
+  })
+    .sort({
+      name: 1
+    })
+    .limit(50)
+    .lean();
+
+  // ======================================================
+  // ANDROID RESPONSE FORMAT
+  // ======================================================
+
+  return {
+    articles: articles.map((article) => ({
+      id: article._id,
+
+      title: article.title,
+
+      // Android can use subtitle directly
+      subtitle: article.excerpt || '',
+
+      slug: article.slug,
+
+      excerpt: article.excerpt || '',
+
+      author: article.author
+        ? {
+            name: article.author.name || '',
+            bio: article.author.bio || '',
+            avatarUrl: article.author.avatarUrl || ''
+          }
+        : null,
+
+      category:
+        article.categoryData &&
+        article.categoryData.length > 0
+          ? {
+              id: article.categoryData[0]._id,
+              name: article.categoryData[0].name,
+              slug: article.categoryData[0].slug
+            }
+          : null,
+
+      // Topics become tags for Android
+      tags: Array.isArray(article.topicData)
+        ? article.topicData.map((topic) => ({
+            id: topic._id,
+            name: topic.name,
+            slug: topic.slug
+          }))
+        : [],
+
+      heroImage: article.heroImage?.url || '',
+
+      publishedAt: article.publishedAt,
+
+      readTimeMinutes:
+        article.readTimeMinutes || 3
+    })),
+
+    molecules: molecules.map((molecule) => ({
+      id: molecule._id,
+
+      name: molecule.name,
+
+      slug: molecule.slug,
+
+      formula: molecule.formula,
+
+      molarMass: molecule.molarMass,
+
+      description: molecule.description,
+
+      structureImage:
+        molecule.structureImage?.url || '',
+
+      commonUses:
+        Array.isArray(molecule.commonUses)
+          ? molecule.commonUses
+          : []
+    }))
   };
 };
 
-module.exports = { search };
+module.exports = {
+  search
+};

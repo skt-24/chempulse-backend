@@ -1,146 +1,334 @@
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const ApiError = require('../utils/apiError');
-const { generateAccessToken, generateRefreshTokenString } = require('../utils/tokens');
+const {
+  generateAccessToken,
+  generateRefreshTokenString
+} = require('../utils/tokens');
 const { hashToken } = require('../utils/crypto');
 const { sendResetPasswordEmail } = require('./emailService');
 
+// ======================================================
+// CREATE REFRESH TOKEN
+// ======================================================
+
 const createRefreshToken = async (user, ipAddress, userAgent) => {
   const rawRefreshToken = generateRefreshTokenString();
+
   const tokenHash = hashToken(rawRefreshToken);
-  
-  // 7 days expiration
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const expiresAt = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000
+  );
 
   await RefreshToken.create({
     user: user._id,
     tokenHash,
     expiresAt,
-    createdByIp: ipAddress,
-    userAgent
+    createdByIp: ipAddress || '',
+    userAgent: userAgent || ''
   });
 
   return rawRefreshToken;
 };
 
-const signup = async ({ name, email, password }, ipAddress, userAgent) => {
-  const existingUser = await User.findOne({ email });
+// ======================================================
+// SIGN UP
+// ======================================================
+
+const signup = async (
+  { name, email, password },
+  ipAddress,
+  userAgent
+) => {
+  const normalizedEmail = String(email || '')
+    .trim()
+    .toLowerCase();
+
+  const existingUser = await User.findOne({
+    email: normalizedEmail
+  });
+
   if (existingUser) {
-    throw new ApiError(409, 'An account with this email already exists', 'EMAIL_IN_USE');
+    throw new ApiError(
+      409,
+      'An account with this email already exists',
+      'EMAIL_IN_USE'
+    );
   }
 
   const user = await User.create({
-    name,
-    email,
+    name: String(name || '').trim(),
+    email: normalizedEmail,
     passwordHash: password
   });
 
-  const accessToken = generateAccessToken(user._id, user.roles);
-  const refreshToken = await createRefreshToken(user, ipAddress, userAgent);
+  const accessToken = generateAccessToken(
+    user._id,
+    user.roles
+  );
 
-  return { user, accessToken, refreshToken };
+  const refreshToken = await createRefreshToken(
+    user,
+    ipAddress,
+    userAgent
+  );
+
+  return {
+    user,
+    accessToken,
+    refreshToken
+  };
 };
 
-const login = async ({ email, password }, ipAddress, userAgent) => {
-  const user = await User.findOne({ email }).select('+passwordHash');
-  
-  // Generic authentication failure message to prevent email enumeration
-  if (!user || !(await user.comparePassword(password))) {
-    throw new ApiError(401, 'Invalid email or password', 'INVALID_CREDENTIALS');
+// ======================================================
+// LOGIN
+// ======================================================
+
+const login = async (
+  { email, password },
+  ipAddress,
+  userAgent
+) => {
+  const normalizedEmail = String(email || '')
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedEmail || !password) {
+    throw new ApiError(
+      401,
+      'Invalid email or password',
+      'INVALID_CREDENTIALS'
+    );
   }
 
-  const accessToken = generateAccessToken(user._id, user.roles);
-  const refreshToken = await createRefreshToken(user, ipAddress, userAgent);
+  const user = await User.findOne({
+    email: normalizedEmail
+  }).select('+passwordHash');
 
-  return { user, accessToken, refreshToken };
+  if (!user) {
+    throw new ApiError(
+      401,
+      'Invalid email or password',
+      'INVALID_CREDENTIALS'
+    );
+  }
+
+  const passwordMatches =
+    await user.comparePassword(password);
+
+  if (!passwordMatches) {
+    throw new ApiError(
+      401,
+      'Invalid email or password',
+      'INVALID_CREDENTIALS'
+    );
+  }
+
+  const accessToken = generateAccessToken(
+    user._id,
+    user.roles
+  );
+
+  const refreshToken = await createRefreshToken(
+    user,
+    ipAddress,
+    userAgent
+  );
+
+  return {
+    user,
+    accessToken,
+    refreshToken
+  };
 };
 
-const refreshAccessToken = async (rawRefreshToken, ipAddress, userAgent) => {
+// ======================================================
+// REFRESH ACCESS TOKEN
+// ======================================================
+
+const refreshAccessToken = async (
+  rawRefreshToken,
+  ipAddress,
+  userAgent
+) => {
+  if (!rawRefreshToken) {
+    throw new ApiError(
+      401,
+      'Refresh token is required',
+      'INVALID_REFRESH_TOKEN'
+    );
+  }
+
   const incomingHash = hashToken(rawRefreshToken);
-  const tokenDoc = await RefreshToken.findOne({ tokenHash: incomingHash });
+
+  const tokenDoc = await RefreshToken.findOne({
+    tokenHash: incomingHash
+  });
 
   if (!tokenDoc) {
-    throw new ApiError(401, 'Invalid refresh token', 'INVALID_REFRESH_TOKEN');
+    throw new ApiError(
+      401,
+      'Invalid refresh token',
+      'INVALID_REFRESH_TOKEN'
+    );
   }
 
   if (tokenDoc.revoked) {
-    // Refresh token reuse detected: revoke all tokens for this user as a security precaution
-    await RefreshToken.updateMany({ user: tokenDoc.user }, { revoked: true });
-    throw new ApiError(401, 'Revoked token reused. Security alert triggered.', 'TOKEN_REUSE_DETECTED');
+    await RefreshToken.updateMany(
+      { user: tokenDoc.user },
+      { revoked: true }
+    );
+
+    throw new ApiError(
+      401,
+      'Revoked token reused. Security alert triggered.',
+      'TOKEN_REUSE_DETECTED'
+    );
   }
 
   if (new Date() > tokenDoc.expiresAt) {
-    throw new ApiError(401, 'Refresh token expired', 'REFRESH_TOKEN_EXPIRED');
+    throw new ApiError(
+      401,
+      'Refresh token expired',
+      'REFRESH_TOKEN_EXPIRED'
+    );
   }
 
-  // Rotate Refresh Token
-  const newRawRefreshToken = generateRefreshTokenString();
+  const newRawRefreshToken =
+    generateRefreshTokenString();
+
   const newHash = hashToken(newRawRefreshToken);
-  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  const newExpiresAt = new Date(
+    Date.now() + 7 * 24 * 60 * 60 * 1000
+  );
 
   tokenDoc.revoked = true;
   tokenDoc.replacedByTokenHash = newHash;
+
   await tokenDoc.save();
 
   await RefreshToken.create({
     user: tokenDoc.user,
     tokenHash: newHash,
     expiresAt: newExpiresAt,
-    createdByIp: ipAddress,
-    userAgent
+    createdByIp: ipAddress || '',
+    userAgent: userAgent || ''
   });
 
   const user = await User.findById(tokenDoc.user);
+
   if (!user) {
-    throw new ApiError(401, 'Associated user not found', 'USER_NOT_FOUND');
+    throw new ApiError(
+      401,
+      'Associated user not found',
+      'USER_NOT_FOUND'
+    );
   }
 
-  const accessToken = generateAccessToken(user._id, user.roles);
+  const accessToken = generateAccessToken(
+    user._id,
+    user.roles
+  );
 
-  return { accessToken, refreshToken: newRawRefreshToken };
+  return {
+    accessToken,
+    refreshToken: newRawRefreshToken
+  };
 };
 
+// ======================================================
+// LOGOUT
+// ======================================================
+
 const logout = async (rawRefreshToken) => {
+  if (!rawRefreshToken) {
+    return;
+  }
+
   const incomingHash = hashToken(rawRefreshToken);
-  const tokenDoc = await RefreshToken.findOne({ tokenHash: incomingHash });
+
+  const tokenDoc = await RefreshToken.findOne({
+    tokenHash: incomingHash
+  });
+
   if (tokenDoc) {
     tokenDoc.revoked = true;
     await tokenDoc.save();
   }
 };
 
+// ======================================================
+// FORGOT PASSWORD
+// ======================================================
+
 const forgotPassword = async (email) => {
-  const user = await User.findOne({ email });
+  const normalizedEmail = String(email || '')
+    .trim()
+    .toLowerCase();
+
+  const user = await User.findOne({
+    email: normalizedEmail
+  });
+
   if (!user) {
-    // Return silently to prevent account discovery via timing/messages
     return;
   }
 
-  const resetToken = user.createPasswordResetToken();
+  const resetToken =
+    user.createPasswordResetToken();
+
   await user.save();
 
-  await sendResetPasswordEmail({ to: user.email, resetToken });
+  await sendResetPasswordEmail({
+    to: user.email,
+    resetToken
+  });
 };
 
-const resetPassword = async (token, newPassword) => {
+// ======================================================
+// RESET PASSWORD
+// ======================================================
+
+const resetPassword = async (
+  token,
+  newPassword
+) => {
   const hashed = hashToken(token);
+
   const user = await User.findOne({
     resetPasswordToken: hashed,
-    resetPasswordExpires: { $gt: Date.now() }
-  }).select('+resetPasswordToken +resetPasswordExpires');
+    resetPasswordExpires: {
+      $gt: Date.now()
+    }
+  }).select(
+    '+resetPasswordToken +resetPasswordExpires'
+  );
 
   if (!user) {
-    throw new ApiError(400, 'Password reset token is invalid or has expired', 'INVALID_RESET_TOKEN');
+    throw new ApiError(
+      400,
+      'Password reset token is invalid or has expired',
+      'INVALID_RESET_TOKEN'
+    );
   }
 
   user.passwordHash = newPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
+
   await user.save();
 
-  // Invalidate all existing refresh tokens after password reset
-  await RefreshToken.updateMany({ user: user._id }, { revoked: true });
+  await RefreshToken.updateMany(
+    { user: user._id },
+    { revoked: true }
+  );
 };
+
+// ======================================================
+// EXPORTS
+// ======================================================
 
 module.exports = {
   signup,
