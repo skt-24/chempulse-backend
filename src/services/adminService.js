@@ -190,10 +190,20 @@ const updateTopic = async (
 
 // ==================== MOLECULES ====================
 
+// ==================== MOLECULES ====================
+
 const createMolecule = async (data) => {
   const slug = data.slug
     ? slugify(data.slug)
     : slugify(data.name);
+
+  // If this molecule is being published as the
+  // Molecule of the Day, remove the previous one.
+  if (data.featuredDate) {
+    await Molecule.deleteMany({
+      featuredDate: { $exists: true, $ne: null }
+    });
+  }
 
   return Molecule.create({
     ...data,
@@ -218,7 +228,6 @@ const updateMolecule = async (
     }
   );
 };
-
 // ==================== QUIZZES ====================
 
 const createQuiz = async (data) => {
