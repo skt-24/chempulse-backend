@@ -1,11 +1,15 @@
 const vintageService = require('../services/vintageService');
 const { sendSuccess } = require('../utils/apiResponse');
 
-// ==================== PUBLIC ====================
+// ======================================================
+// PUBLIC
+// ======================================================
 
 const getVintageItems = async (req, res, next) => {
   try {
-    const items = await vintageService.getVintageItems(req.query);
+    const items = await vintageService.getVintageItems(
+      req.query
+    );
 
     sendSuccess(res, 200, {
       items
@@ -17,9 +21,10 @@ const getVintageItems = async (req, res, next) => {
 
 const getVintageBySlug = async (req, res, next) => {
   try {
-    const item = await vintageService.getVintageBySlug(
-      req.params.slug
-    );
+    const item =
+      await vintageService.getVintageBySlug(
+        req.params.slug
+      );
 
     sendSuccess(res, 200, {
       item
@@ -29,11 +34,16 @@ const getVintageBySlug = async (req, res, next) => {
   }
 };
 
-// ==================== ADMIN ====================
+// ======================================================
+// ADMIN
+// ======================================================
 
 const createVintage = async (req, res, next) => {
   try {
-    const item = await vintageService.createVintage(req.body);
+    const item =
+      await vintageService.createVintage(
+        req.body
+      );
 
     sendSuccess(res, 201, {
       item
@@ -45,10 +55,11 @@ const createVintage = async (req, res, next) => {
 
 const updateVintage = async (req, res, next) => {
   try {
-    const item = await vintageService.updateVintage(
-      req.params.id,
-      req.body
-    );
+    const item =
+      await vintageService.updateVintage(
+        req.params.id,
+        req.body
+      );
 
     sendSuccess(res, 200, {
       item
@@ -60,7 +71,9 @@ const updateVintage = async (req, res, next) => {
 
 const deleteVintage = async (req, res, next) => {
   try {
-    await vintageService.deleteVintage(req.params.id);
+    await vintageService.deleteVintage(
+      req.params.id
+    );
 
     sendSuccess(res, 200, {
       message: 'Vintage entry permanently deleted'
