@@ -6,11 +6,14 @@ const Quiz = require('../models/Quiz');
 const CategoryHub = require('../models/CategoryHub');
 const User = require('../models/User');
 const Media = require('../models/Media');
+const Vintage = require('../models/Vintage');
 
 const ApiError = require('../utils/apiError');
 const { slugify } = require('../utils/slugify');
 
-// ==================== DASHBOARD ====================
+// ======================================================
+// DASHBOARD
+// ======================================================
 
 const getDashboardStats = async () => {
   const [
@@ -20,7 +23,8 @@ const getDashboardStats = async () => {
     molecules,
     quizzes,
     users,
-    media
+    media,
+    vintage
   ] = await Promise.all([
     Article.countDocuments(),
     Category.countDocuments(),
@@ -28,7 +32,8 @@ const getDashboardStats = async () => {
     Molecule.countDocuments(),
     Quiz.countDocuments(),
     User.countDocuments(),
-    Media.countDocuments()
+    Media.countDocuments(),
+    Vintage.countDocuments()
   ]);
 
   return {
@@ -38,14 +43,19 @@ const getDashboardStats = async () => {
     molecules,
     quizzes,
     users,
-    media
+    media,
+    vintage
   };
 };
 
-// ==================== ARTICLES ====================
+// ======================================================
+// ARTICLES
+// ======================================================
 
 const createArticle = async (data, adminUserId) => {
-  const slug = data.slug ? slugify(data.slug) : slugify(data.title);
+  const slug = data.slug
+    ? slugify(data.slug)
+    : slugify(data.title);
 
   const existing = await Article.findOne({ slug });
 
@@ -126,7 +136,9 @@ const deleteArticle = async (id) => {
   return true;
 };
 
-// ==================== CATEGORIES ====================
+// ======================================================
+// CATEGORIES
+// ======================================================
 
 const createCategory = async (data) => {
   const slug = data.slug
@@ -157,7 +169,9 @@ const updateCategory = async (
   );
 };
 
-// ==================== TOPICS ====================
+// ======================================================
+// TOPICS
+// ======================================================
 
 const createTopic = async (data) => {
   const slug = data.slug
@@ -188,20 +202,24 @@ const updateTopic = async (
   );
 };
 
-// ==================== MOLECULES ====================
-
-// ==================== MOLECULES ====================
+// ======================================================
+// MOLECULES
+// ======================================================
 
 const createMolecule = async (data) => {
   const slug = data.slug
     ? slugify(data.slug)
     : slugify(data.name);
 
-  // If this molecule is being published as the
-  // Molecule of the Day, remove the previous one.
+  // Molecule of the Day:
+  // If a new featured molecule is created,
+  // remove the previous featured molecule.
   if (data.featuredDate) {
     await Molecule.deleteMany({
-      featuredDate: { $exists: true, $ne: null }
+      featuredDate: {
+        $exists: true,
+        $ne: null
+      }
     });
   }
 
@@ -228,7 +246,10 @@ const updateMolecule = async (
     }
   );
 };
-// ==================== QUIZZES ====================
+
+// ======================================================
+// QUIZZES
+// ======================================================
 
 const createQuiz = async (data) => {
   return Quiz.create(data);
@@ -248,7 +269,9 @@ const updateQuiz = async (
   );
 };
 
-// ==================== HUB ====================
+// ======================================================
+// CATEGORY HUB
+// ======================================================
 
 const upsertCategoryHub = async (
   data
@@ -265,6 +288,83 @@ const upsertCategoryHub = async (
     }
   );
 };
+
+// ======================================================
+// VINTAGE ARCHIVE
+// ======================================================
+
+const createVintage = async (data) => {
+  const slug = data.slug
+    ? slugify(data.slug)
+    : slugify(data.title);
+
+  const existing = await Vintage.findOne({
+    slug
+  });
+
+  if (existing) {
+    throw new ApiError(
+      409,
+      'A vintage entry with this slug already exists',
+      'DUPLICATE_SLUG'
+    );
+  }
+
+  return Vintage.create({
+    ...data,
+    slug
+  });
+};
+
+const updateVintage = async (
+  id,
+  data
+) => {
+  if (data.slug) {
+    data.slug = slugify(data.slug);
+  } else if (data.title) {
+    data.slug = slugify(data.title);
+  }
+
+  const vintage =
+    await Vintage.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+  if (!vintage) {
+    throw new ApiError(
+      404,
+      'Vintage entry not found',
+      'VINTAGE_NOT_FOUND'
+    );
+  }
+
+  return vintage;
+};
+
+const deleteVintage = async (id) => {
+  const vintage =
+    await Vintage.findByIdAndDelete(id);
+
+  if (!vintage) {
+    throw new ApiError(
+      404,
+      'Vintage entry not found',
+      'VINTAGE_NOT_FOUND'
+    );
+  }
+
+  return true;
+};
+
+// ======================================================
+// EXPORTS
+// ======================================================
 
 module.exports = {
   // Dashboard
@@ -291,6 +391,11 @@ module.exports = {
   createQuiz,
   updateQuiz,
 
-  // Hub
-  upsertCategoryHub
+  // Category Hub
+  upsertCategoryHub,
+
+  // Vintage
+  createVintage,
+  updateVintage,
+  deleteVintage
 };

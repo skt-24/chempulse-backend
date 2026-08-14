@@ -118,3 +118,23 @@ router.post(
 );
 
 module.exports = router;
+// ======================================================
+// VINTAGE ARCHIVE
+// ======================================================
+
+router.post(
+  '/vintage',
+  validateAdminPayload('vintage'),
+  adminController.createVintage
+);
+
+router.put(
+  '/vintage/:id',
+  validateAdminPayload('vintage'),
+  adminController.updateVintage
+);
+
+router.delete(
+  '/vintage/:id',
+  adminController.deleteVintage
+);
