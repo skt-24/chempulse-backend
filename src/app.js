@@ -23,6 +23,7 @@ const quizRoutes = require('./routes/quizRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const ingestionRoutes = require('./routes/ingestionRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const vintageRoutes = require('./routes/vintageRoutes');
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/ingestion', ingestionRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/vintage', vintageRoutes);
 
 // --- HEALTH & READINESS PROBES ---
 
@@ -91,6 +93,13 @@ app.get('/health/ready', (req, res) => {
       error: { code: 'NOT_READY', message: 'Database connection is not active' }
     });
   }
+});
+
+app.get('/api/vintage-test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Vintage route registration is working'
+  });
 });
 
 // Unmatched Route Handling
