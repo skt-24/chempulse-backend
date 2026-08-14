@@ -2,7 +2,10 @@ const Vintage = require('../models/Vintage');
 const ApiError = require('../utils/apiError');
 const { slugify } = require('../utils/slugify');
 
-// ==================== PUBLIC ====================
+
+// ======================================================
+// GET ALL
+// ======================================================
 
 const getVintageItems = async (query = {}) => {
   const filter = {
@@ -18,13 +21,18 @@ const getVintageItems = async (query = {}) => {
     .lean();
 };
 
+
+// ======================================================
+// GET BY SLUG
+// ======================================================
+
 const getVintageBySlug = async (slug) => {
-  const vintage = await Vintage.findOne({
+  const item = await Vintage.findOne({
     slug,
     published: true
   }).lean();
 
-  if (!vintage) {
+  if (!item) {
     throw new ApiError(
       404,
       'Vintage entry not found',
@@ -32,17 +40,22 @@ const getVintageBySlug = async (slug) => {
     );
   }
 
-  return vintage;
+  return item;
 };
 
-// ==================== ADMIN ====================
+
+// ======================================================
+// CREATE
+// ======================================================
 
 const createVintage = async (data) => {
   const slug = data.slug
     ? slugify(data.slug)
     : slugify(data.title);
 
-  const existing = await Vintage.findOne({ slug });
+  const existing = await Vintage.findOne({
+    slug
+  });
 
   if (existing) {
     throw new ApiError(
@@ -58,6 +71,11 @@ const createVintage = async (data) => {
   });
 };
 
+
+// ======================================================
+// UPDATE
+// ======================================================
+
 const updateVintage = async (id, data) => {
   if (data.slug) {
     data.slug = slugify(data.slug);
@@ -65,7 +83,7 @@ const updateVintage = async (id, data) => {
     data.slug = slugify(data.title);
   }
 
-  const vintage = await Vintage.findByIdAndUpdate(
+  const item = await Vintage.findByIdAndUpdate(
     id,
     data,
     {
@@ -74,7 +92,7 @@ const updateVintage = async (id, data) => {
     }
   );
 
-  if (!vintage) {
+  if (!item) {
     throw new ApiError(
       404,
       'Vintage entry not found',
@@ -82,13 +100,19 @@ const updateVintage = async (id, data) => {
     );
   }
 
-  return vintage;
+  return item;
 };
 
-const deleteVintage = async (id) => {
-  const vintage = await Vintage.findByIdAndDelete(id);
 
-  if (!vintage) {
+// ======================================================
+// DELETE
+// ======================================================
+
+const deleteVintage = async (id) => {
+  const item =
+    await Vintage.findByIdAndDelete(id);
+
+  if (!item) {
     throw new ApiError(
       404,
       'Vintage entry not found',
@@ -98,6 +122,7 @@ const deleteVintage = async (id) => {
 
   return true;
 };
+
 
 module.exports = {
   getVintageItems,

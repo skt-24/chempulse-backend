@@ -2,7 +2,8 @@ const vintageService = require('../services/vintageService');
 const { sendSuccess } = require('../utils/apiResponse');
 
 // ======================================================
-// PUBLIC
+// GET ALL VINTAGE ITEMS
+// GET /api/vintage
 // ======================================================
 
 const getVintageItems = async (req, res, next) => {
@@ -19,6 +20,12 @@ const getVintageItems = async (req, res, next) => {
   }
 };
 
+
+// ======================================================
+// GET VINTAGE ITEM BY SLUG
+// GET /api/vintage/:slug
+// ======================================================
+
 const getVintageBySlug = async (req, res, next) => {
   try {
     const item =
@@ -34,8 +41,10 @@ const getVintageBySlug = async (req, res, next) => {
   }
 };
 
+
 // ======================================================
-// ADMIN
+// CREATE VINTAGE
+// POST /api/admin/vintage
 // ======================================================
 
 const createVintage = async (req, res, next) => {
@@ -53,6 +62,12 @@ const createVintage = async (req, res, next) => {
   }
 };
 
+
+// ======================================================
+// UPDATE VINTAGE
+// PUT /api/admin/vintage/:id
+// ======================================================
+
 const updateVintage = async (req, res, next) => {
   try {
     const item =
@@ -69,6 +84,12 @@ const updateVintage = async (req, res, next) => {
   }
 };
 
+
+// ======================================================
+// DELETE VINTAGE
+// DELETE /api/admin/vintage/:id
+// ======================================================
+
 const deleteVintage = async (req, res, next) => {
   try {
     await vintageService.deleteVintage(
@@ -82,6 +103,7 @@ const deleteVintage = async (req, res, next) => {
     next(err);
   }
 };
+
 
 module.exports = {
   getVintageItems,
