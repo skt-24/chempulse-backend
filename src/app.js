@@ -95,12 +95,6 @@ app.get('/health/ready', (req, res) => {
   }
 });
 
-app.get('/api/vintage-test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Vintage route registration is working'
-  });
-});
 
 // Unmatched Route Handling
 app.use(notFoundHandler);
