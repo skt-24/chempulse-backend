@@ -69,7 +69,6 @@ process.on('uncaughtException', (error) => {
 });
 
 startServer();
-const app = require('./app');
 
 const PORT = process.env.PORT || 10000;
 
