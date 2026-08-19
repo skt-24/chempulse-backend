@@ -10,8 +10,7 @@ async function startServer() {
     // Connect to MongoDB Atlas first
     await connectDB();
 
-    // 0.0.0.0 allows other devices on your LAN,
-    // such as your Android phone, to reach the API.
+    // Start HTTP server
     server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log('');
       console.log('========================================');
@@ -22,14 +21,47 @@ async function startServer() {
       console.log(`Local:       http://localhost:${env.PORT}`);
       console.log(`Network:     http://<YOUR-PC-IP>:${env.PORT}`);
       console.log('Listening:   0.0.0.0');
+      console.log('Health:      https://chemsiq-backend.onrender.com/health');
       console.log('========================================');
       console.log('');
+
+      // ========================================
+      // Render Keep-Alive
+      // ========================================
+
+      const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+      setInterval(async () => {
+        try {
+          const response = await fetch(
+            'https://chemsiq-backend.onrender.com/health'
+          );
+
+          if (response.ok) {
+            console.log(
+              `[KEEP-ALIVE] ${new Date().toISOString()} - server healthy`
+            );
+          } else {
+            console.warn(
+              `[KEEP-ALIVE] ${new Date().toISOString()} - HTTP ${response.status}`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `[KEEP-ALIVE] ${new Date().toISOString()} - ${error.message}`
+          );
+        }
+      }, KEEP_ALIVE_INTERVAL);
     });
   } catch (error) {
     console.error('[Startup Error]', error);
     process.exit(1);
   }
 }
+
+// ========================================
+// Graceful Shutdown
+// ========================================
 
 const gracefulShutdown = (signal) => {
   console.log(
@@ -59,6 +91,10 @@ const gracefulShutdown = (signal) => {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
+// ========================================
+// Global Error Handling
+// ========================================
+
 process.on('unhandledRejection', (reason) => {
   console.error('[Unhandled Rejection]', reason);
 });
@@ -68,36 +104,8 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// ========================================
+// Start Server
+// ========================================
+
 startServer();
-
-const PORT = process.env.PORT || 10000;
-
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Chemsiq server running on port ${PORT}`);
-  console.log(`Health: https://chemsiq-backend.onrender.com/health`);
-
-  // Keep Render free instance warm
-  const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes
-
-  setInterval(async () => {
-    try {
-      const response = await fetch(
-        'https://chemsiq-backend.onrender.com/health'
-      );
-
-      if (response.ok) {
-        console.log(
-          `[KEEP-ALIVE] ${new Date().toISOString()} - server healthy`
-        );
-      } else {
-        console.warn(
-          `[KEEP-ALIVE] ${new Date().toISOString()} - HTTP ${response.status}`
-        );
-      }
-    } catch (error) {
-      console.error(
-        `[KEEP-ALIVE] ${new Date().toISOString()} - ${error.message}`
-      );
-    }
-  }, KEEP_ALIVE_INTERVAL);
-});
