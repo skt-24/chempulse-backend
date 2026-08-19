@@ -69,3 +69,36 @@ process.on('uncaughtException', (error) => {
 });
 
 startServer();
+const app = require('./app');
+
+const PORT = process.env.PORT || 10000;
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Chemsiq server running on port ${PORT}`);
+  console.log(`Health: https://chemsiq-backend.onrender.com/health`);
+
+  // Keep Render free instance warm
+  const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+  setInterval(async () => {
+    try {
+      const response = await fetch(
+        'https://chemsiq-backend.onrender.com/health'
+      );
+
+      if (response.ok) {
+        console.log(
+          `[KEEP-ALIVE] ${new Date().toISOString()} - server healthy`
+        );
+      } else {
+        console.warn(
+          `[KEEP-ALIVE] ${new Date().toISOString()} - HTTP ${response.status}`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `[KEEP-ALIVE] ${new Date().toISOString()} - ${error.message}`
+      );
+    }
+  }, KEEP_ALIVE_INTERVAL);
+});

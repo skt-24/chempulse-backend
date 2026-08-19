@@ -103,3 +103,12 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 module.exports = app;
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: 'Chemsiq Backend',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
