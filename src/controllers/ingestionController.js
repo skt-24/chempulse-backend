@@ -30,8 +30,8 @@ const getReviewQueue = async (req, res, next) => {
 
 const reviewArticle = async (req, res, next) => {
   try {
-    const { action, canonicalUrl } = req.body;
-    const article = await ingestionService.reviewIngestedArticle(req.params.articleId, action, req.user._id, canonicalUrl);
+    const { action } = req.body;
+    const article = await ingestionService.reviewIngestedArticle(req.params.articleId, action, req.user._id);
     sendSuccess(res, 200, { article });
   } catch (err) {
     next(err);

@@ -114,17 +114,10 @@ const getReviewQueue = async (queryParams) => {
   };
 };
 
-const reviewIngestedArticle = async (articleId, action, adminUserId, canonicalUrl) => {
+const reviewIngestedArticle = async (articleId, action, adminUserId) => {
   const article = await Article.findById(articleId);
   if (!article || article.ingestionStatus !== 'pending_review') {
     throw new ApiError(404, 'Article pending review not found', 'ARTICLE_NOT_FOUND');
-  }
-
-  if (canonicalUrl !== undefined) {
-    if (canonicalUrl && !/^https?:\/\//i.test(canonicalUrl)) {
-      throw new ApiError(400, 'Canonical backlink must use http or https', 'INVALID_CANONICAL_URL');
-    }
-    article.canonicalUrl = canonicalUrl;
   }
 
   if (action === 'approve') {
@@ -136,12 +129,8 @@ const reviewIngestedArticle = async (articleId, action, adminUserId, canonicalUr
     article.status = 'archived';
     article.ingestionStatus = 'rejected';
     article.updatedBy = adminUserId;
-  } else if (action === 'draft') {
-    article.status = 'draft';
-    article.ingestionStatus = 'approved';
-    article.updatedBy = adminUserId;
   } else {
-    throw new ApiError(400, 'Invalid review action. Must be approve, draft or reject', 'INVALID_INPUT');
+    throw new ApiError(400, 'Invalid review action. Must be approve or reject', 'INVALID_INPUT');
   }
 
   await article.save();
