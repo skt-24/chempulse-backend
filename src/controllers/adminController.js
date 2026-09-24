@@ -1,5 +1,4 @@
 const adminService = require('../services/adminService');
-const Topic = require('../models/Topic');
 const { sendSuccess } = require('../utils/apiResponse');
 
 // ======================================================
@@ -21,48 +20,6 @@ const getDashboardStats = async (req, res, next) => {
 // ======================================================
 // ARTICLES
 // ======================================================
-
-const listArticles = async (req, res, next) => {
-  try {
-    const result = await adminService.listArticles(req.query);
-    sendSuccess(res, 200, result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const listTopics = async (req, res, next) => {
-  try {
-    const topics = await Topic.find({ active: true }).select('name slug').sort({ name: 1 });
-    sendSuccess(res, 200, { topics });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const bulkCreateArticles = async (req, res, next) => {
-  try {
-    const records = Array.isArray(req.body?.articles) ? req.body.articles : [];
-    if (!records.length || records.length > 500) {
-      return res.status(400).json({ success: false, error: { code: 'INVALID_BATCH_SIZE', message: 'Provide between 1 and 500 articles.' } });
-    }
-    const { validateAdminData } = require('../validators/adminValidator');
-    const results = await Promise.all(records.map(async (record, index) => {
-      try {
-        const article = validateAdminData('article', record);
-        const created = await adminService.createArticle(article, req.user._id);
-        return { index, success: true, article: created };
-      } catch (error) {
-        return { index, success: false, title: record?.title || '', error: error.message };
-      }
-    }));
-    const created = results.filter((item) => item.success).map((item) => item.article);
-    const failed = results.filter((item) => !item.success);
-    sendSuccess(res, 200, { results, created, failed, successCount: created.length, failureCount: failed.length });
-  } catch (err) {
-    next(err);
-  }
-};
 
 const createArticle = async (req, res, next) => {
   try {
@@ -313,9 +270,6 @@ module.exports = {
   getDashboardStats,
 
   // Articles
-  listArticles,
-  listTopics,
-  bulkCreateArticles,
   createArticle,
   updateArticle,
   deleteArticle,
