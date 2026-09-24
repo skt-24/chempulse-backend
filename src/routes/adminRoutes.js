@@ -26,10 +26,6 @@ router.get(
 // ARTICLES
 // ======================================================
 
-router.get('/articles', adminController.listArticles);
-router.get('/topics', adminController.listTopics);
-router.post('/articles/bulk', adminController.bulkCreateArticles);
-
 router.post(
   '/articles',
   validateAdminPayload('article'),

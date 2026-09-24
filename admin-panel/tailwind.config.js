@@ -1,1 +1,0 @@
-export default { content: ['./index.html', './src/**/*.{js,jsx}'], darkMode: 'class', theme: { extend: { colors: { ink: '#16243a', teal: '#087f8c', canvas: '#f6f8fb' }, fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] } } }, plugins: [] };

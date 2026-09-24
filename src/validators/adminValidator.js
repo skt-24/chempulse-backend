@@ -370,13 +370,18 @@ const schemas = {
 // ADMIN PAYLOAD VALIDATION
 // ======================================================
 
-const validateAdminData = (schemaName, data, { partial = false } = {}) => {
+const validateAdminPayload = (schemaName) => {
+  return (req, res, next) => {
     const schema = schemas[schemaName];
 
     // If no schema exists, skip validation.
-    if (!schema) return data;
+    if (!schema) {
+      return next();
+    }
 
-    const isUpdate = partial;
+    const isUpdate =
+      req.method === 'PUT' ||
+      req.method === 'PATCH';
 
     /*
      * For updates, make every field optional.
@@ -397,7 +402,7 @@ const validateAdminData = (schemaName, data, { partial = false } = {}) => {
       error,
       value
     } = validationSchema.validate(
-      data,
+      req.body,
       {
         abortEarly: false,
         stripUnknown: true
@@ -410,34 +415,25 @@ const validateAdminData = (schemaName, data, { partial = false } = {}) => {
         (d) => d.message
       );
 
-      throw new ApiError(
+      return next(
+        new ApiError(
           400,
           'Invalid administrative payload',
           'INVALID_INPUT',
           details
+        )
       );
     }
 
     // Replace request body with
     // validated/sanitized data.
-    return value;
-};
+    req.body = value;
 
-const validateAdminPayload = (schemaName) => {
-  return (req, res, next) => {
-    try {
-      req.body = validateAdminData(schemaName, req.body, {
-        partial: req.method === 'PUT' || req.method === 'PATCH'
-      });
-      next();
-    } catch (error) {
-      next(error);
-    }
+    next();
   };
 };
 
 
 module.exports = {
-  validateAdminPayload,
-  validateAdminData
+  validateAdminPayload
 };
