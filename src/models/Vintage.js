@@ -31,6 +31,13 @@ const vintageSchema = new mongoose.Schema(
       trim: true
     },
 
+    era: { type: String, trim: true, default: '' },
+    year: { type: Number },
+    pioneer: { type: String, trim: true, default: '' },
+    institution: { type: String, trim: true, default: '' },
+    historicalContext: { type: String, trim: true, default: '' },
+    documentImageUrl: { type: String, default: '' },
+
     category: {
       type: String,
       required: [true, 'Vintage category is required'],

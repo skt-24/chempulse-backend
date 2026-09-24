@@ -77,6 +77,38 @@ const listArticles = async ({ q, category, status, page = 1, limit = 100 } = {})
   return { articles, total, page: currentPage, pages: Math.ceil(total / pageSize) };
 };
 
+const listMolecules = async ({ q } = {}) => {
+  const filter = {};
+  if (q) {
+    const escaped = String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = [
+      { name: { $regex: escaped, $options: 'i' } },
+      { formula: { $regex: escaped, $options: 'i' } }
+    ];
+  }
+  return Molecule.find(filter).sort({ featuredDate: 1, name: 1 });
+};
+
+const listVintage = async ({ q, era } = {}) => {
+  const filter = {};
+  if (q) {
+    const escaped = String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = [
+      { title: { $regex: escaped, $options: 'i' } },
+      { pioneer: { $regex: escaped, $options: 'i' } },
+      { historicalContext: { $regex: escaped, $options: 'i' } }
+    ];
+  }
+  if (era) filter.era = era;
+  return Vintage.find(filter).sort({ date: -1, updatedAt: -1 });
+};
+
+const getVintageById = async (id) => {
+  const item = await Vintage.findById(id);
+  if (!item) throw new ApiError(404, 'Vintage entry not found', 'VINTAGE_NOT_FOUND');
+  return item;
+};
+
 const createArticle = async (data, adminUserId) => {
   const slug = data.slug
     ? slugify(data.slug)
@@ -236,18 +268,6 @@ const createMolecule = async (data) => {
     ? slugify(data.slug)
     : slugify(data.name);
 
-  // Molecule of the Day:
-  // If a new featured molecule is created,
-  // remove the previous featured molecule.
-  if (data.featuredDate) {
-    await Molecule.deleteMany({
-      featuredDate: {
-        $exists: true,
-        $ne: null
-      }
-    });
-  }
-
   return Molecule.create({
     ...data,
     slug
@@ -387,40 +407,50 @@ const deleteVintage = async (id) => {
   return true;
 };
 
-// ======================================================
-// EXPORTS
-// ======================================================
+const deleteMolecule = async (id) => {
+  const molecule = await Molecule.findByIdAndDelete(id);
+  if (!molecule) throw new ApiError(404, 'Molecule not found', 'MOLECULE_NOT_FOUND');
+  return true;
+};
+
+const setMoleculeFeaturedDate = async (id, featuredDate) => {
+  const molecule = await Molecule.findById(id);
+  if (!molecule) throw new ApiError(404, 'Molecule not found', 'MOLECULE_NOT_FOUND');
+  if (featuredDate) {
+    const day = new Date(featuredDate);
+    if (Number.isNaN(day.getTime())) {
+      throw new ApiError(400, 'Provide a valid MOTD date', 'INVALID_MOTD_DATE');
+    }
+    day.setUTCHours(0, 0, 0, 0);
+    const collision = await Molecule.findOne({ _id: { $ne: id }, featuredDate: day });
+    if (collision) throw new ApiError(409, 'Another molecule is already scheduled for that date', 'MOTD_DATE_TAKEN');
+    molecule.featuredDate = day;
+  } else {
+    molecule.featuredDate = undefined;
+  }
+  return molecule.save();
+};
 
 module.exports = {
-  // Dashboard
   getDashboardStats,
-
-  // Articles
   listArticles,
   createArticle,
   updateArticle,
   deleteArticle,
-
-  // Categories
   createCategory,
   updateCategory,
-
-  // Topics
   createTopic,
   updateTopic,
-
-  // Molecules
+  listMolecules,
   createMolecule,
   updateMolecule,
-
-  // Quizzes
+  deleteMolecule,
+  setMoleculeFeaturedDate,
   createQuiz,
   updateQuiz,
-
-  // Category Hub
   upsertCategoryHub,
-
-  // Vintage
+  listVintage,
+  getVintageById,
   createVintage,
   updateVintage,
   deleteVintage

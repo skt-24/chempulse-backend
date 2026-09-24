@@ -94,6 +94,9 @@ router.put(
   validateAdminPayload('molecule'),
   adminController.updateMolecule
 );
+router.get('/molecules', adminController.listMolecules);
+router.patch('/molecules/:id/featured-date', adminController.setMoleculeFeaturedDate);
+router.delete('/molecules/:id', adminController.deleteMolecule);
 
 // ======================================================
 // QUIZZES
@@ -121,10 +124,12 @@ router.post(
   adminController.upsertCategoryHub
 );
 
-module.exports = router;
 // ======================================================
 // VINTAGE ARCHIVE
 // ======================================================
+
+router.get('/vintage', adminController.listVintage);
+router.get('/vintage/:id', adminController.getVintageById);
 
 router.post(
   '/vintage',
@@ -142,3 +147,5 @@ router.delete(
   '/vintage/:id',
   adminController.deleteVintage
 );
+
+module.exports = router;
