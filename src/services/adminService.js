@@ -52,6 +52,31 @@ const getDashboardStats = async () => {
 // ARTICLES
 // ======================================================
 
+const listArticles = async ({ q, category, status, page = 1, limit = 100 } = {}) => {
+  const filter = {};
+  if (category) filter.category = category;
+  if (status && status !== 'all') filter.status = status;
+  if (q) {
+    const escaped = String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = [
+      { title: { $regex: escaped, $options: 'i' } },
+      { 'author.name': { $regex: escaped, $options: 'i' } }
+    ];
+  }
+  const currentPage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number.parseInt(limit, 10) || 100));
+  const [articles, total] = await Promise.all([
+    Article.find(filter)
+      .populate('category', 'name slug')
+      .populate('topics', 'name slug')
+      .sort({ updatedAt: -1 })
+      .skip((currentPage - 1) * pageSize)
+      .limit(pageSize),
+    Article.countDocuments(filter)
+  ]);
+  return { articles, total, page: currentPage, pages: Math.ceil(total / pageSize) };
+};
+
 const createArticle = async (data, adminUserId) => {
   const slug = data.slug
     ? slugify(data.slug)
@@ -371,6 +396,7 @@ module.exports = {
   getDashboardStats,
 
   // Articles
+  listArticles,
   createArticle,
   updateArticle,
   deleteArticle,
