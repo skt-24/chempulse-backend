@@ -177,11 +177,6 @@ const schemas = {
         .allow('')
     }),
 
-    structure3dImage: Joi.object({
-      url: Joi.string().allow(''),
-      alt: Joi.string().allow('')
-    }),
-
     commonUses: Joi.array()
       .items(
         Joi.string()
@@ -347,13 +342,6 @@ const schemas = {
     date: Joi.string()
       .trim()
       .required(),
-
-    era: Joi.string().allow(''),
-    year: Joi.number().integer().allow(null),
-    pioneer: Joi.string().allow(''),
-    institution: Joi.string().allow(''),
-    historicalContext: Joi.string().allow(''),
-    documentImageUrl: Joi.string().allow(''),
 
     category: Joi.string()
       .valid(

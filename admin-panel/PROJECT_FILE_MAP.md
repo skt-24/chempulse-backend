@@ -6,9 +6,8 @@ Use this map when returning to the project later.
 
 | File or folder | What it is for |
 | --- | --- |
-| `src/App.jsx` | Login, grouped navigation, Articles, Vintage Archive, Review Queue, Molecules/MOTD, and Trending Topics screens. |
-| `src/api.js` | Backend URL, login, JWT access/refresh handling, and shared Axios/API methods. |
-| `src/services/` | Named API modules for articles, vintage, molecules, ingestion review, and media uploads. |
+| `src/App.jsx` | Login screen, navigation, article list, editor, and bulk import UI. |
+| `src/api.js` | Backend URL, login, JWT access/refresh handling, and admin API calls. |
 | `src/mediaUpload.js` | Hero image validation and upload to the authenticated backend media endpoint. |
 | `src/styles.css` | Dashboard theme, layout, responsive styles, and dark mode. |
 | `.env` | Frontend API URL only. Never put MongoDB, JWT, or Cloudinary secrets here. |
@@ -24,11 +23,10 @@ The actual API project is `C:\Users\vanam\OneDrive\Desktop\backend`.
 | File | What it is for |
 | --- | --- |
 | `src/app.js` | Express app, CORS allowlist, and API route mounting. |
-| `src/routes/adminRoutes.js` | Protected article, topic, vintage, molecule and MOTD admin endpoints. |
-| `src/controllers/adminController.js` | Admin HTTP request and response handlers. |
-| `src/services/adminService.js` | Admin database queries and operations. |
-| `src/validators/adminValidator.js` | Joi validation for article, molecule, vintage, and batch requests. |
-| `src/services/ingestionService.js` | Imported article queue and approve/draft/reject workflow. |
+| `src/routes/adminRoutes.js` | Protected article and topic admin endpoints. |
+| `src/controllers/adminController.js` | HTTP request and response handlers. |
+| `src/services/adminService.js` | Article database queries and operations. |
+| `src/validators/adminValidator.js` | Joi validation for article requests and batch records. |
 | `.env` | Private server credentials and CORS origins. Keep it out of Git and never share it. |
 
 ## Common edits
