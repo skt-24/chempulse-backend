@@ -32,6 +32,10 @@ const moleculeSchema = new mongoose.Schema(
       url: { type: String, default: '' },
       alt: { type: String, default: '' }
     },
+    structure3dImage: {
+      url: { type: String, default: '' },
+      alt: { type: String, default: '' }
+    },
     commonUses: [
       {
         type: String,
