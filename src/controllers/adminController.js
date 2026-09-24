@@ -261,6 +261,16 @@ const upsertCategoryHub = async (req, res, next) => {
 // VINTAGE ARCHIVE
 // ======================================================
 
+const listVintage = async (req, res, next) => {
+  try { sendSuccess(res, 200, { items: await adminService.listVintage(req.query) }); }
+  catch (err) { next(err); }
+};
+
+const getVintageById = async (req, res, next) => {
+  try { sendSuccess(res, 200, { item: await adminService.getVintageById(req.params.id) }); }
+  catch (err) { next(err); }
+};
+
 const createVintage = async (req, res, next) => {
   try {
     const item = await adminService.createVintage(
@@ -304,42 +314,43 @@ const deleteVintage = async (req, res, next) => {
   }
 };
 
-// ======================================================
-// EXPORTS
-// ======================================================
+const listMolecules = async (req, res, next) => {
+  try { sendSuccess(res, 200, { molecules: await adminService.listMolecules(req.query) }); }
+  catch (err) { next(err); }
+};
+
+const deleteMolecule = async (req, res, next) => {
+  try { await adminService.deleteMolecule(req.params.id); sendSuccess(res, 200, { message: 'Molecule deleted' }); }
+  catch (err) { next(err); }
+};
+
+const setMoleculeFeaturedDate = async (req, res, next) => {
+  try { const molecule = await adminService.setMoleculeFeaturedDate(req.params.id, req.body.featuredDate); sendSuccess(res, 200, { molecule }); }
+  catch (err) { next(err); }
+};
 
 module.exports = {
-  // Dashboard
   getDashboardStats,
-
-  // Articles
   listArticles,
   listTopics,
   bulkCreateArticles,
   createArticle,
   updateArticle,
   deleteArticle,
-
-  // Categories
   createCategory,
   updateCategory,
-
-  // Topics
   createTopic,
   updateTopic,
-
-  // Molecules
   createMolecule,
   updateMolecule,
-
-  // Quizzes
+  listMolecules,
+  deleteMolecule,
+  setMoleculeFeaturedDate,
   createQuiz,
   updateQuiz,
-
-  // Category Hub
   upsertCategoryHub,
-
-  // Vintage
+  listVintage,
+  getVintageById,
   createVintage,
   updateVintage,
   deleteVintage
