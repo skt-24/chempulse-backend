@@ -1,12 +1,14 @@
 const express = require('express');
-const quizController = require('../controllers/quizController');
-const { validateSubmitQuiz } = require('../validators/quizValidator');
-const { protect, optionalProtect } = require('../middleware/auth');
+const profileController = require('../controllers/profileController');
+const { validateUpdateProfile } = require('../validators/profileValidator');
+const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/today', optionalProtect, quizController.getTodayQuiz);
-router.post('/:id/submit', protect, validateSubmitQuiz, quizController.submitQuiz);
-router.get('/history', protect, quizController.getHistory);
+// All profile endpoints require authentication
+router.use(protect);
+
+router.get('/', profileController.getProfile);
+router.patch('/', validateUpdateProfile, profileController.updateProfile);
 
 module.exports = router;

@@ -97,7 +97,7 @@ const articleSchema = new mongoose.Schema(
     },
     ingestionStatus: {
       type: String,
-      enum: ['none', 'pending_review', 'approved', 'rejected'],
+      enum: ['none', 'pending_review', 'approved', 'rejected', 'archived'],
       default: 'none',
       index: true
     },
