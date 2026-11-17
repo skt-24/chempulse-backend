@@ -1,3 +1,4 @@
+
 const Joi = require('joi');
 const ApiError = require('../utils/apiError');
 
@@ -36,7 +37,7 @@ const schemas = {
     }).required(),
 
     category: Joi.string()
-      .required(), // Category ObjectId
+      .required(),
 
     topics: Joi.array()
       .items(Joi.string()),
@@ -60,21 +61,61 @@ const schemas = {
     featured: Joi.boolean()
       .default(false),
 
+    publishedAt: Joi.date()
+      .allow(null),
+
     readTimeMinutes: Joi.number()
       .integer()
       .min(1)
       .default(3),
 
-    sourceMetadata: Joi.object({
-      journalName: Joi.string()
-        .allow(''),
+    isDemoData: Joi.boolean()
+      .default(false),
 
-      doi: Joi.string()
-        .allow(''),
+    // ==================================================
+    // SOURCE & ATTRIBUTION
+    // ==================================================
 
-      originalUrl: Joi.string()
-        .allow('')
-    })
+    source: Joi.string()
+      .allow(null)
+      .default(null),
+
+    externalId: Joi.string()
+      .allow(null, '')
+      .default(null),
+
+    canonicalUrl: Joi.string()
+      .uri({
+        scheme: ['http', 'https']
+      })
+      .allow(null, '')
+      .default(null),
+
+    attributionText: Joi.string()
+      .allow('')
+      .default(''),
+
+    license: Joi.string()
+      .allow('')
+      .default(''),
+
+    // ==================================================
+    // INGESTION METADATA
+    // ==================================================
+
+    ingestedAt: Joi.date()
+      .allow(null)
+      .default(null),
+
+    ingestionStatus: Joi.string()
+      .valid(
+        'none',
+        'pending_review',
+        'approved',
+        'rejected',
+        'archived'
+      )
+      .default('none')
   }),
 
   // ======================================================
@@ -269,7 +310,7 @@ const schemas = {
 
   hub: Joi.object({
     category: Joi.string()
-      .required(), // Category ObjectId
+      .required(),
 
     heroTitle: Joi.string()
       .required(),
@@ -385,15 +426,11 @@ const validateAdminPayload = (schemaName) => {
 
     /*
      * For updates, make every field optional.
-     *
-     * This allows PATCH/PUT requests to update
-     * only the fields being changed.
+     * This allows partial updates.
      */
     const validationSchema = isUpdate
       ? schema.fork(
-          Object.keys(
-            schema.describe().keys
-          ),
+          Object.keys(schema.describe().keys),
           (s) => s.optional()
         )
       : schema;
@@ -409,7 +446,7 @@ const validateAdminPayload = (schemaName) => {
       }
     );
 
-    // Validation failed
+    // Validation failed.
     if (error) {
       const details = error.details.map(
         (d) => d.message
@@ -425,8 +462,7 @@ const validateAdminPayload = (schemaName) => {
       );
     }
 
-    // Replace request body with
-    // validated/sanitized data.
+    // Replace request body with validated data.
     req.body = value;
 
     next();
